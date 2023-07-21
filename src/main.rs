@@ -5,7 +5,7 @@ use crate::{
     camera::Camera,
     hittable::Hittable,
     hittable_list::HittableList,
-    material::{Metal, Lambertian},
+    material::{Dielectric, Lambertian, Metal},
     random::random_float,
     sphere::Sphere,
     vec3::{write_color, Color, Point3, Vec3, F},
@@ -29,6 +29,7 @@ fn ray_color<T: Hittable>(ray: Ray, world: &T, depth: i32) -> Color {
         Some(rec) => {
             match rec.mat.scatter(ray, rec) {
                 Some((attenuation, scattered)) => {
+                    // eprintln!("{:?}", scattered);
                     return attenuation * ray_color(scattered, world, depth - 1);
                 }
                 None => {
@@ -46,62 +47,33 @@ fn ray_color<T: Hittable>(ray: Ray, world: &T, depth: i32) -> Color {
 
 fn main() {
     // Image
-    let aspect_ratio = 16.0 / 9.0;
-    let image_width = 400;
+    let aspect_ratio = 3.0 / 2.0;
+    let image_width = 1200;
     let image_height = (image_width as F / aspect_ratio) as i32;
-    let samples_per_pixel = 50;
+    let samples_per_pixel = 500;
     let max_depth = 50;
 
-    let material_ground = Lambertian {
-        albedo: Color::new(0.8, 0.8, 0.0),
-    };
-    let material_center = Lambertian {
-        albedo: Color::new(0.7, 0.3, 0.3),
-    };
-    let material_left = Metal {
-        albedo: Color::new(0.8, 0.8, 0.8),
-    };
-    let material_right = Metal {
-        albedo: Color::new(0.8, 0.6, 0.2),
-    };
-
     // World
-    let mut world = HittableList::default();
-    world.add(
-        (Sphere {
-            center: Point3::new(0.0, -100.5, -1.0),
-            radius: 100.0,
-            mat: material_ground.into(),
-        })
-        .into(),
-    );
-    world.add(
-        (Sphere {
-            center: Point3::new(0.0, 0.0, -1.0),
-            radius: 0.5,
-            mat: material_center.into(),
-        })
-        .into(),
-    );
-    world.add(
-        (Sphere {
-            center: Point3::new(-1.0, 0.0, -1.0),
-            radius: 0.5,
-            mat: material_left.into(),
-        })
-        .into(),
-    );
-    world.add(
-        (Sphere {
-            center: Point3::new(1.0, 0.0, -1.0),
-            radius: 0.5,
-            mat: material_right.into(),
-        })
-        .into(),
-    );
+    let world = HittableList::random_scene();
 
     // Camera
-    let cam = Camera::new();
+    let cam = {
+        let lookfrom = Point3::new(13.0, 2.0, 3.0);
+        let lookat = Point3::new(0.0, 0.0, 0.0);
+        let vup = Vec3::new(0.0, 1.0, 0.0);
+        let dist_to_focus = 10.0;
+        let aperture = 0.1;
+
+        Camera::new(
+            lookfrom,
+            lookat,
+            vup,
+            20.0,
+            aspect_ratio,
+            aperture,
+            dist_to_focus,
+        )
+    };
 
     print!("P3\n{} {}\n255\n", image_width, image_height);
 
